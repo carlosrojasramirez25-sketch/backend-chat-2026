@@ -6,6 +6,7 @@ import { ConversationsModule } from './conversations/conversations.module';
 import { MessagesModule } from './messages/messages.module';
 import { ConversationsMembersModule } from './conversations-members/conversations-members.module';
 import { ChatModule } from './chat/chat.module';
+import { AttachmentsModule } from './attachments/attachments.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ChatModule } from './chat/chat.module';
     MessagesModule,
     ConversationsMembersModule,
     ChatModule,
+    AttachmentsModule,
   ],
   controllers: [],
   providers: [],
