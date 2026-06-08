@@ -6,7 +6,11 @@ async function bootstrap() {
 
   
   app.enableCors({
-    origin: 'http://localhost:3001', // o el puerto de tu frontend
+    origin: [
+      'http://localhost:3001',
+      'https://front-chat-2026.vercel.app',
+      /\.vercel\.app$/,
+    ],
     credentials: true,
   });
   
