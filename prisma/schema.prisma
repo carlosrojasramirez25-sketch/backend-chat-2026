@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model users {
+  id                    Int                     @id @default(autoincrement())
+  name                  String?                 @db.VarChar(100)
+  password              String?                 @db.VarChar(100)
+  email                 String                  @unique(map: "email") @db.VarChar(100)
+  avatar_url            String?
+  status                UserStatus              @default(offline)
+  last_seen_at          DateTime?
+  created_at            DateTime                @default(now())
+  attachments           attachments[]
+  conversations         conversations[]
+  conversations_members conversations_members[]
+  messages              messages[]
+}
+
+model attachments {
+  id          Int      @id @default(autoincrement())
+  message_id  Int
+  uploaded_by Int
+  file_url    String   @db.VarChar(1000)
+  file_name   String   @db.VarChar(255)
+  mime_type   String   @db.VarChar(100)
+  file_size   Int
+  created_at  DateTime @default(now()) @db.DateTime(0)
+  messages    messages @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachments_message")
+  users       users    @relation(fields: [uploaded_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachments_user")
+
+  @@index([uploaded_by], map: "fk_attachments_user")
+  @@index([message_id], map: "idx_attachments_message_id")
+}
+
+model conversations {
+  id                    Int                     @id @default(autoincrement())
+  type                  conversations_type      @default(direct)
+  name                  String?                 @db.VarChar(100)
+  avatar_url            String?                 @db.VarChar(500)
+  created_by            Int
+  created_at            DateTime                @default(now()) @db.DateTime(0)
+  updated_at            DateTime                @default(now()) @db.DateTime(0)
+  users                 users                   @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_conversations_created_by")
+  conversations_members conversations_members[]
+  messages              messages[]
+
+  @@index([created_by], map: "fk_conversations_created_by")
+}
+
+model conversations_members {
+  id              Int                        @id @default(autoincrement())
+  conversation_id Int
+  user_id         Int
+  role            conversations_members_role @default(member)
+  joined_at       DateTime                   @default(now()) @db.DateTime(0)
+  last_read_at    DateTime?                  @db.DateTime(0)
+  conversations   conversations              @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cm_conversation")
+  users           users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cm_user")
+
+  @@unique([conversation_id, user_id], map: "uq_conversation_user")
+  @@index([user_id], map: "idx_cm_user_id")
+}
+
+model messages {
+  id              Int           @id @default(autoincrement())
+  conversation_id Int
+  sender_id       Int
+  reply_to_id     Int?
+  type            messages_type @default(text)
+  content         String?       @db.Text
+  is_deleted      Boolean       @default(false)
+  created_at      DateTime      @default(now()) @db.DateTime(0)
+  updated_at      DateTime      @default(now()) @db.DateTime(0)
+  attachments     attachments[]
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_messages_conversation")
+  messages        messages?     @relation("messagesTomessages", fields: [reply_to_id], references: [id], onUpdate: NoAction, map: "fk_messages_reply_to")
+  other_messages  messages[]    @relation("messagesTomessages")
+  users           users         @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_messages_sender")
+
+  @@index([reply_to_id], map: "fk_messages_reply_to")
+  @@index([conversation_id], map: "idx_messages_conversation_id")
+  @@index([created_at], map: "idx_messages_created_at")
+  @@index([sender_id], map: "idx_messages_sender_id")
+}
+
+enum conversations_type {
+  direct
+  group
+}
+
+enum conversations_members_role {
+  admin
+  member
+}
+
+enum messages_type {
+  text
+  image
+  file
+  system
+}
+
+enum UserStatus {
+  online
+  offline
+  away
+}
