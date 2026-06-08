@@ -17,7 +17,7 @@ export class MessagesService {
       data: createMessageDto,
       include: {
         users: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true, avatar_url: true }
         }
       }
     });
@@ -29,7 +29,7 @@ export class MessagesService {
         where: { conversation_id: conversationId, is_deleted: false },
         include: {
           users: {
-            select: { id: true, name: true, email: true }
+            select: { id: true, name: true, email: true, avatar_url: true }
           }
         },
         orderBy: { created_at: 'asc' }

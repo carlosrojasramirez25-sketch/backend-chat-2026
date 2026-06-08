@@ -11,7 +11,7 @@ model users {
   name                  String?                 @db.VarChar(100)
   password              String?                 @db.VarChar(100)
   email                 String                  @unique(map: "email") @db.VarChar(100)
-  avatar_url            String?
+  avatar_url            String?   @db.LongText
   status                UserStatus              @default(offline)
   last_seen_at          DateTime?
   created_at            DateTime                @default(now())

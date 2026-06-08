@@ -1,9 +1,6 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateUserDto } from './create-user.dto';
-
 export class UpdateUserDto {
-
-        name!:string
-    email!:string
-    password!:string
+  name?: string;
+  email?: string;
+  password?: string;
+  avatar_url?: string;
 }
