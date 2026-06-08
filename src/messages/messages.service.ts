@@ -16,9 +16,8 @@ export class MessagesService {
     return await this.prisma.messages.create({
       data: createMessageDto,
       include: {
-        users: {
-          select: { id: true, name: true, email: true, avatar_url: true }
-        }
+        users: { select: { id: true, name: true, email: true, avatar_url: true } },
+        messages: { select: { id: true, content: true, sender_id: true, type: true, users: { select: { name: true } } } },
       }
     });
   }
@@ -28,9 +27,8 @@ export class MessagesService {
       return await this.prisma.messages.findMany({
         where: { conversation_id: conversationId, is_deleted: false },
         include: {
-          users: {
-            select: { id: true, name: true, email: true, avatar_url: true }
-          }
+          users: { select: { id: true, name: true, email: true, avatar_url: true } },
+          messages: { select: { id: true, content: true, sender_id: true, type: true, users: { select: { name: true } } } },
         },
         orderBy: { created_at: 'asc' }
       });
