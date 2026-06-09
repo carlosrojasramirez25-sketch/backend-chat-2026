@@ -1,7 +1,7 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm install --include=dev && npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 preDeployCommand = "npx prisma migrate deploy"
-startCommand = "node dist/main"
+startCommand = "find /app/dist -name 'main.js' | head -5 && node dist/src/main 2>/dev/null || node dist/main"
