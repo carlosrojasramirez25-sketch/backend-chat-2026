@@ -238,6 +238,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // ── Señalización WebRTC ──────────────────────────────────────────────────────
+
+  @SubscribeMessage('callOffer')
+  handleCallOffer(@MessageBody() data: { targetUserId: number; callerId: number; callerName: string; offer: any; conversationId: number }) {
+    this.server.to(`user_${data.targetUserId}`).emit('incomingCall', data);
+  }
+
+  @SubscribeMessage('callAnswer')
+  handleCallAnswer(@MessageBody() data: { callerId: number; answer: any }) {
+    this.server.to(`user_${data.callerId}`).emit('callAnswered', { answer: data.answer });
+  }
+
+  @SubscribeMessage('callReject')
+  handleCallReject(@MessageBody() data: { callerId: number }) {
+    this.server.to(`user_${data.callerId}`).emit('callRejected');
+  }
+
+  @SubscribeMessage('callEnd')
+  handleCallEnd(@MessageBody() data: { targetUserId: number }) {
+    this.server.to(`user_${data.targetUserId}`).emit('callEnded');
+  }
+
+  @SubscribeMessage('iceCandidate')
+  handleIceCandidate(@MessageBody() data: { targetUserId: number; candidate: any }) {
+    this.server.to(`user_${data.targetUserId}`).emit('iceCandidate', { candidate: data.candidate });
+  }
+
   // notificar creación de nueva conversación al participante destino
   @SubscribeMessage('newConversation')
   handleNewConversation(
