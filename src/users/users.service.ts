@@ -35,11 +35,14 @@ export class UsersService {
       select: { conversation_id: true },
     });
     const convIds = memberships.map((m) => m.conversation_id);
-    const contacts = await this.prisma.conversations_members.findMany({
+    if (convIds.length === 0) return [];
+    const members = await this.prisma.conversations_members.findMany({
       where: { conversation_id: { in: convIds }, user_id: { not: userId } },
-      select: { users: { select: PUBLIC_FIELDS } },
-      distinct: ['user_id'],
+      select: { user_id: true, users: { select: PUBLIC_FIELDS } },
     });
-    return contacts.map((c) => c.users);
+    const seen = new Set<number>();
+    return members
+      .filter((m) => { if (seen.has(m.user_id)) return false; seen.add(m.user_id); return true; })
+      .map((m) => m.users);
   }
 }
