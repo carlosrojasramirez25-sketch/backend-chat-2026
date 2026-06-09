@@ -1,6 +1,6 @@
 [build]
-buildCommand = "npm run build"
+buildCommand = "echo 'Build runs at deploy time'"
 
 [deploy]
-preDeployCommand = "npx prisma migrate deploy"
+preDeployCommand = "npm run build && npx prisma migrate deploy"
 startCommand = "node dist/main"
