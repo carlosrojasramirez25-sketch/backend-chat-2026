@@ -1,6 +1,6 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+builder = "NIXPACKS"
+buildCommand = "npm install --include=dev && npm run build"
 
 [deploy]
 preDeployCommand = "npx prisma migrate deploy"
