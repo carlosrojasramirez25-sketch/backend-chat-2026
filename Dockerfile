@@ -4,13 +4,14 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
+COPY src ./src
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
 
 # Placeholder DATABASE_URL so prisma generate works during npm ci (no real DB needed)
 ENV DATABASE_URL=mysql://build:build@localhost:3306/build
 
 RUN npm ci
-
-COPY . .
 
 RUN npm run build
 
