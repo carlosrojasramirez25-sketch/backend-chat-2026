@@ -1,3 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
 [deploy]
 preDeployCommand = "npx prisma migrate deploy"
-startCommand = "echo '=== dist contents ===' && ls -la /app/dist/ 2>&1 || echo 'dist DOES NOT EXIST'; node dist/main"
+startCommand = "node dist/main"

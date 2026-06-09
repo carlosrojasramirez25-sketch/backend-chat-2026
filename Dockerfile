@@ -12,7 +12,7 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build && echo "=== Build OK ===" && ls -la dist/ && echo "dist/main.js exists: $(test -f dist/main.js && echo YES || echo NO)"
+RUN npm run build
 
 EXPOSE 3000
 
