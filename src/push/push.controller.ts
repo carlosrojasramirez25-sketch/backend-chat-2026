@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { PushService } from './push.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('api/push')
 export class PushController {
@@ -11,10 +13,11 @@ export class PushController {
   }
 
   @Post('subscribe')
-  subscribe(@Body() body: {
-    userId: number;
-    subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
-  }) {
-    return this.pushService.subscribe(body.userId, body.subscription);
+  @UseGuards(JwtAuthGuard)
+  subscribe(
+    @Body() body: { subscription: { endpoint: string; keys: { p256dh: string; auth: string } } },
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.pushService.subscribe(user.id, body.subscription);
   }
 }

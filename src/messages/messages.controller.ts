@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('messages')
+@UseGuards(JwtAuthGuard)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
@@ -13,8 +16,12 @@ export class MessagesController {
   }
 
   @Get()
-  findAll(@Query('conversationId') conversationId?: string) {
-    return this.messagesService.findAll(conversationId ? +conversationId : undefined);
+  findAll(
+    @Query('conversationId') conversationId: string,
+    @CurrentUser() user: { id: number },
+  ) {
+    if (!conversationId) throw new BadRequestException('conversationId es requerido');
+    return this.messagesService.findAllForUser(+conversationId, user.id);
   }
 
   @Get(':id')

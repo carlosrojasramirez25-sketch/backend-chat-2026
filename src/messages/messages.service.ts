@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -22,7 +22,15 @@ export class MessagesService {
     });
   }
 
- async findAll(conversationId?: number) {
+ async findAllForUser(conversationId: number, userId: number) {
+    const member = await this.prisma.conversations_members.findFirst({
+      where: { conversation_id: conversationId, user_id: userId },
+    });
+    if (!member) throw new ForbiddenException('No tienes acceso a esta conversación');
+    return this.findAll(conversationId);
+  }
+
+  async findAll(conversationId?: number) {
     if (conversationId) {
       return await this.prisma.messages.findMany({
         where: { conversation_id: conversationId, is_deleted: false },

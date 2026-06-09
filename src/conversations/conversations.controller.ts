@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('conversations')
+@UseGuards(JwtAuthGuard)
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
@@ -13,8 +16,8 @@ export class ConversationsController {
   }
 
   @Get()
-  findAll(@Query('userId') userId?: string) {
-    return this.conversationsService.findAll(userId ? +userId : undefined);
+  findAll(@CurrentUser() user: { id: number }) {
+    return this.conversationsService.findAll(user.id);
   }
 
   @Get(':id')
