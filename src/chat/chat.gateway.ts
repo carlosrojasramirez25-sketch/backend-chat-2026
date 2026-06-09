@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../messages/messages.service';
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PushService } from '../push/push.service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -23,6 +24,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly messagesService: MessagesService,
     private readonly prisma: PrismaService,
+    private readonly pushService: PushService,
   ) {}
 
   // cuando un usuario se conecta
@@ -149,12 +151,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleSendMessage(
     @MessageBody() dto: CreateMessageDto & { sender_avatar?: string },
   ) {
-    // sender_avatar no es columna de messages — se extrae antes de pasar a Prisma
     const { sender_avatar: _ignored, ...messageData } = dto;
     const message = await this.messagesService.createWithSender(messageData as CreateMessageDto);
     this.server
       .to(`conversation_${dto.conversation_id}`)
       .emit('newMessage', message);
+
+    // Push notification to offline members
+    try {
+      const members = await this.prisma.conversations_members.findMany({
+        where: { conversation_id: dto.conversation_id },
+        include: { users: { select: { id: true, name: true } } },
+      });
+      const onlineIds = new Set(this.connectedUsers.values());
+      const senderName = members.find(m => m.user_id === messageData.sender_id)?.users?.name ?? 'Nuevo mensaje';
+      for (const member of members) {
+        if (member.user_id !== messageData.sender_id && !onlineIds.has(member.user_id)) {
+          await this.pushService.sendToUser(member.user_id, {
+            title: senderName,
+            body: messageData.type === 'image' ? '📷 Imagen' : (messageData.content ?? ''),
+            icon: '/icon-192.png',
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error sending push notification:', err);
+    }
+
     return message;
   }
 

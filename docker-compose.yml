@@ -1,0 +1,17 @@
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: chat_db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: chat
+      MARIADB_USER: chat_user
+      MARIADB_PASSWORD: chat_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - chat_db_data:/var/lib/mysql
+
+volumes:
+  chat_db_data:
