@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
@@ -11,8 +11,12 @@ export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
   @Post()
-  create(@Body() createConversationDto: CreateConversationDto) {
-    return this.conversationsService.create(createConversationDto);
+  create(
+    @Body() createConversationDto: CreateConversationDto,
+    @CurrentUser() user: { id: number },
+  ) {
+    // force created_by to the authenticated user — never trust the body
+    return this.conversationsService.create({ ...createConversationDto, created_by: user.id });
   }
 
   @Get()
@@ -21,17 +25,29 @@ export class ConversationsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.conversationsService.findOne(+id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: { id: number }) {
+    const convo = await this.conversationsService.findOne(+id);
+    if (!convo) throw new NotFoundException();
+    const isMember = await this.conversationsService.isMember(+id, user.id);
+    if (!isMember) throw new ForbiddenException('No tienes acceso a esta conversación');
+    return convo;
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateConversationDto: UpdateConversationDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateConversationDto: UpdateConversationDto,
+    @CurrentUser() user: { id: number },
+  ) {
+    const isMember = await this.conversationsService.isMember(+id, user.id);
+    if (!isMember) throw new ForbiddenException('No tienes acceso a esta conversación');
     return this.conversationsService.update(+id, updateConversationDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @CurrentUser() user: { id: number }) {
+    const isMember = await this.conversationsService.isMember(+id, user.id);
+    if (!isMember) throw new ForbiddenException('No tienes acceso a esta conversación');
     return this.conversationsService.remove(+id);
   }
 }

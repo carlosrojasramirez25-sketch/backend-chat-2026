@@ -5,46 +5,36 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ConversationsService {
- 
-  constructor(private readonly prisma:PrismaService){}
+  constructor(private readonly prisma: PrismaService) {}
+
+  async isMember(conversationId: number, userId: number): Promise<boolean> {
+    const member = await this.prisma.conversations_members.findFirst({
+      where: { conversation_id: conversationId, user_id: userId },
+    });
+    return !!member;
+  }
 
   async create(createConversationDto: CreateConversationDto) {
     const { participant_id, ...data } = createConversationDto;
 
-    // Si es una conversación directa y se pasa participant_id, verificamos si ya existe
     if (participant_id) {
       const existing = await this.prisma.conversations.findFirst({
         where: {
           type: 'direct',
           AND: [
-            {
-              conversations_members: {
-                some: { user_id: data.created_by }
-              }
-            },
-            {
-              conversations_members: {
-                some: { user_id: participant_id }
-              }
-            }
-          ]
+            { conversations_members: { some: { user_id: data.created_by } } },
+            { conversations_members: { some: { user_id: participant_id } } },
+          ],
         },
         include: {
           conversations_members: {
-            include: {
-              users: {
-                select: { id: true, name: true, email: true, avatar_url: true }
-              }
-            }
-          }
-        }
+            include: { users: { select: { id: true, name: true, email: true, avatar_url: true } } },
+          },
+        },
       });
 
-      if (existing) {
-        return existing;
-      }
+      if (existing) return existing;
 
-      // Si no existe, creamos la conversación y agregamos a ambos miembros
       return await this.prisma.conversations.create({
         data: {
           type: 'direct',
@@ -52,89 +42,48 @@ export class ConversationsService {
           conversations_members: {
             create: [
               { user_id: data.created_by, role: 'admin' },
-              { user_id: participant_id, role: 'member' }
-            ]
-          }
+              { user_id: participant_id, role: 'member' },
+            ],
+          },
         },
         include: {
           conversations_members: {
-            include: {
-              users: {
-                select: { id: true, name: true, email: true, avatar_url: true }
-              }
-            }
-          }
-        }
+            include: { users: { select: { id: true, name: true, email: true, avatar_url: true } } },
+          },
+        },
       });
     }
 
-    // Flujo normal (ej. Insomnia o creación sin miembro inicial)
     const convo = await this.prisma.conversations.create({ data });
-    
-    // Auto-agregar al creador
     await this.prisma.conversations_members.create({
-      data: {
-        conversation_id: convo.id,
-        user_id: data.created_by,
-        role: 'admin'
-      }
+      data: { conversation_id: convo.id, user_id: data.created_by, role: 'admin' },
     });
-
     return convo;
   }
 
-  async findAll(userId?: number) {
-    if (userId) {
-      return await this.prisma.conversations.findMany({
-        where: {
-          conversations_members: {
-            some: { user_id: userId }
-          }
-        },
-        include: {
-          conversations_members: {
-            include: {
-              users: {
-                select: { id: true, name: true, email: true, avatar_url: true }
-              }
-            }
-          },
-          messages: {
-            orderBy: { created_at: 'desc' },
-            take: 1
-          }
-        },
-        orderBy: {
-          updated_at: 'desc'
-        }
-      });
-    }
-
+  async findAll(userId: number) {
     return await this.prisma.conversations.findMany({
+      where: { conversations_members: { some: { user_id: userId } } },
       include: {
         conversations_members: {
-          include: {
-            users: {
-              select: { id: true, name: true, email: true, avatar_url: true }
-            }
-          }
-        }
-      }
+          include: { users: { select: { id: true, name: true, email: true, avatar_url: true } } },
+        },
+        messages: { orderBy: { created_at: 'desc' }, take: 1 },
+      },
+      orderBy: { updated_at: 'desc' },
     });
   }
 
- async findOne(id: number) {
+  async findOne(id: number) {
     return await this.prisma.conversations.findUnique({ where: { id } });
   }
 
- async update(id: number, updateConversationDto: UpdateConversationDto) {
-    return await this.prisma.conversations.update({
-      where:{ id },
-      data: updateConversationDto
-    });
+  async update(id: number, updateConversationDto: UpdateConversationDto) {
+    return await this.prisma.conversations.update({ where: { id }, data: updateConversationDto });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} conversation`;
+  async remove(id: number) {
+    await this.prisma.conversations_members.deleteMany({ where: { conversation_id: id } });
+    return await this.prisma.conversations.delete({ where: { id } });
   }
 }

@@ -16,12 +16,19 @@ export class UsersController {
   }
 
   @Get()
-  async findAll(@Query('email') email?: string) {
+  async findAll(
+    @Query('email') email: string | undefined,
+    @CurrentUser() user: { id: number },
+  ) {
     if (email) {
-      const user = await this.usersService.findByEmail(email);
-      return user ? [user] : [];
+      const found = await this.usersService.findByEmail(email);
+      if (!found) return [];
+      // never return password
+      const { password: _, ...safe } = found as any;
+      return [safe];
     }
-    return this.usersService.findAll();
+    // sin filtro: solo devuelve tus contactos (usuarios en conversaciones comunes)
+    return this.usersService.findContactsOf(user.id);
   }
 
   @Get(':id')
