@@ -30,8 +30,8 @@ export class AttachmentsController {
       }),
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
-          return cb(new BadRequestException('Solo se permiten imágenes'), false);
+        if (!file.mimetype.startsWith('image/') && !file.mimetype.startsWith('audio/')) {
+          return cb(new BadRequestException('Solo se permiten imágenes y audios'), false);
         }
         cb(null, true);
       },

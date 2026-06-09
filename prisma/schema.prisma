@@ -116,6 +116,7 @@ enum messages_type {
   image
   file
   system
+  audio
 }
 
 enum UserStatus {
