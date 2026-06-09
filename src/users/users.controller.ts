@@ -32,8 +32,16 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: number },
+  ) {
+    const targetId = +id;
+    if (targetId !== user.id) {
+      const isContact = await this.usersService.areContacts(user.id, targetId);
+      if (!isContact) throw new ForbiddenException('No tienes acceso a este perfil');
+    }
+    return this.usersService.findOne(targetId);
   }
 
   @Patch(':id')

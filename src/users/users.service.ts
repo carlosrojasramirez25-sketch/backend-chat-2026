@@ -29,6 +29,19 @@ export class UsersService {
     return await this.prisma.users.findUnique({ where: { email } });
   }
 
+  async areContacts(userId: number, targetId: number): Promise<boolean> {
+    const myConvos = await this.prisma.conversations_members.findMany({
+      where: { user_id: userId },
+      select: { conversation_id: true },
+    });
+    if (myConvos.length === 0) return false;
+    const convIds = myConvos.map((m) => m.conversation_id);
+    const shared = await this.prisma.conversations_members.findFirst({
+      where: { conversation_id: { in: convIds }, user_id: targetId },
+    });
+    return !!shared;
+  }
+
   async findContactsOf(userId: number) {
     const memberships = await this.prisma.conversations_members.findMany({
       where: { user_id: userId },
