@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ConversationsMembersService } from './conversations-members.service';
 import { CreateConversationsMemberDto } from './dto/create-conversations-member.dto';
 import { UpdateConversationsMemberDto } from './dto/update-conversations-member.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('conversations-members')
+@UseGuards(JwtAuthGuard)
 export class ConversationsMembersController {
   constructor(private readonly conversationsMembersService: ConversationsMembersService) {}
 

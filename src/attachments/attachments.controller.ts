@@ -5,13 +5,16 @@ import {
   UseInterceptors,
   Body,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { AttachmentsService } from './attachments.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('attachments')
+@UseGuards(JwtAuthGuard)
 export class AttachmentsController {
   constructor(private readonly attachmentsService: AttachmentsService) {}
 

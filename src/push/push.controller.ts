@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('api/push')
+@UseGuards(JwtAuthGuard)
 export class PushController {
   constructor(private readonly pushService: PushService) {}
 
@@ -13,7 +14,6 @@ export class PushController {
   }
 
   @Post('subscribe')
-  @UseGuards(JwtAuthGuard)
   subscribe(
     @Body() body: { subscription: { endpoint: string; keys: { p256dh: string; auth: string } } },
     @CurrentUser() user: { id: number },
