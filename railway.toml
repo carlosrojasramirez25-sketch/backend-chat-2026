@@ -4,4 +4,4 @@ dockerfilePath = "Dockerfile"
 
 [deploy]
 preDeployCommand = "npx prisma migrate deploy"
-startCommand = "find /app/dist -name 'main.js' | head -5 && node dist/src/main 2>/dev/null || node dist/main"
+startCommand = "node dist/main"
