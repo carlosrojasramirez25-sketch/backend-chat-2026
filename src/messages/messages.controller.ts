@@ -16,7 +16,8 @@ export class MessagesController {
     @CurrentUser() user: { id: number },
   ) {
     const dto = { ...createMessageDto, sender_id: user.id };
-    if ((dto.type === 'image' || dto.type === 'audio') && dto.content) {
+    const msgType = dto.type as string | undefined;
+    if ((msgType === 'image' || msgType === 'audio') && dto.content) {
       if (!dto.content.startsWith('https://') && !dto.content.startsWith('http://')) {
         throw new BadRequestException('Contenido inválido para este tipo de mensaje');
       }

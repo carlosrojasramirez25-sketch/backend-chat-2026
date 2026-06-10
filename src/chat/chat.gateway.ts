@@ -169,7 +169,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const socketUserId = this.connectedUsers.get(client.id);
     if (!socketUserId || socketUserId !== dto.sender_id) return;
-    if ((dto.type === 'image' || dto.type === 'audio') && dto.content) {
+    const msgType = dto.type as string | undefined;
+    if ((msgType === 'image' || msgType === 'audio') && dto.content) {
       if (!dto.content.startsWith('https://') && !dto.content.startsWith('http://')) return;
     }
     const { sender_avatar: _ignored, ...messageData } = dto;
@@ -263,28 +264,63 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ── Señalización WebRTC ──────────────────────────────────────────────────────
 
   @SubscribeMessage('callOffer')
-  handleCallOffer(@MessageBody() data: { targetUserId: number; callerId: number; callerName: string; offer: any; conversationId: number }) {
-    this.server.to(`user_${data.targetUserId}`).emit('incomingCall', data);
+  handleCallOffer(
+    @MessageBody() data: { targetUserId: number; callerName: string; offer: any; callType?: string; conversationId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    if (!socketUserId) return;
+    // callerId is always the authenticated socket user — never trust the body
+    this.server.to(`user_${data.targetUserId}`).emit('incomingCall', {
+      ...data,
+      callerId: socketUserId,
+    });
   }
 
   @SubscribeMessage('callAnswer')
-  handleCallAnswer(@MessageBody() data: { callerId: number; answer: any }) {
-    this.server.to(`user_${data.callerId}`).emit('callAnswered', { answer: data.answer });
+  handleCallAnswer(
+    @MessageBody() data: { callerId: number; answer: any },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    if (!socketUserId) return;
+    this.server.to(`user_${data.callerId}`).emit('callAnswered', {
+      answer: data.answer,
+      responderId: socketUserId,
+    });
   }
 
   @SubscribeMessage('callReject')
-  handleCallReject(@MessageBody() data: { callerId: number }) {
-    this.server.to(`user_${data.callerId}`).emit('callRejected');
+  handleCallReject(
+    @MessageBody() data: { callerId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    if (!socketUserId) return;
+    this.server.to(`user_${data.callerId}`).emit('callRejected', { rejecterId: socketUserId });
   }
 
   @SubscribeMessage('callEnd')
-  handleCallEnd(@MessageBody() data: { targetUserId: number }) {
-    this.server.to(`user_${data.targetUserId}`).emit('callEnded');
+  handleCallEnd(
+    @MessageBody() data: { targetUserId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    if (!socketUserId) return;
+    this.server.to(`user_${data.targetUserId}`).emit('callEnded', { enderId: socketUserId });
   }
 
   @SubscribeMessage('iceCandidate')
-  handleIceCandidate(@MessageBody() data: { targetUserId: number; candidate: any }) {
-    this.server.to(`user_${data.targetUserId}`).emit('iceCandidate', { candidate: data.candidate });
+  handleIceCandidate(
+    @MessageBody() data: { targetUserId: number; candidate: any },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    if (!socketUserId) return;
+    this.server.to(`user_${data.targetUserId}`).emit('iceCandidate', {
+      candidate: data.candidate,
+      senderId: socketUserId,
+    });
   }
 
   // notificar creación de nueva conversación al participante destino
@@ -293,21 +329,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: {
       conversationId: number;
       targetUserId: number;
-      creatorId: number;
       creatorName: string;
       creatorEmail: string;
     },
+    @ConnectedSocket() client: Socket,
   ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    if (!socketUserId) return;
     this.server.to(`user_${data.targetUserId}`).emit('conversationCreated', {
       id: data.conversationId,
       participant: {
-        id: data.creatorId,
+        id: socketUserId,
         name: data.creatorName,
         email: data.creatorEmail,
       },
       lastMessage: 'Chat iniciado',
       updatedAt: new Date().toISOString(),
     });
-    console.log(`Notificado chat nuevo al usuario ${data.targetUserId}`);
   }
 }
