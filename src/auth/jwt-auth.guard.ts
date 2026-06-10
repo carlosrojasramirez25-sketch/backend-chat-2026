@@ -8,9 +8,15 @@ export class JwtAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<Request>();
-    const auth = req.headers.authorization;
-    const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
+
+    // Cookie takes priority; Authorization header is the fallback (used by WebSocket handshake)
+    const cookieToken: string | undefined = (req as any).cookies?.['access_token'];
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+
+    const token = cookieToken ?? bearerToken;
     if (!token) throw new UnauthorizedException('Token requerido');
+
     try {
       req['user'] = this.jwtService.verify(token);
       return true;

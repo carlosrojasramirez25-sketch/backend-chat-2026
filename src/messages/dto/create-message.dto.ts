@@ -1,8 +1,8 @@
-import { IsEnum, IsInt, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
 import { messages_type } from '@prisma/client';
 
 export class CreateMessageDto {
-    
+
   @IsInt()
   conversation_id!: number;
 
@@ -15,10 +15,12 @@ export class CreateMessageDto {
 
   @IsOptional()
   @IsEnum(messages_type)
-  type?: messages_type;  // por defecto 'text' lo maneja Prisma
+  type?: messages_type;
 
+  // 700 KB base64 ceiling covers ~30s audio at 128kbps or a 500KB image
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(700_000)
   content?: string;
 }

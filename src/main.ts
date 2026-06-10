@@ -4,10 +4,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { join } from 'path';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  app.use(cookieParser());
   // Security headers (X-Frame-Options, CSP, HSTS, X-Content-Type-Options, etc.)
   app.use(helmet());
 
@@ -29,6 +31,6 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
-  await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();
