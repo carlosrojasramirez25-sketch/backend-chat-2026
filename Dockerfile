@@ -5,10 +5,10 @@ COPY package*.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
-# Placeholder so prisma generate works during npm ci (no real DB connection needed)
+# Placeholder so prisma generate works during install (no real DB connection needed)
 ENV DATABASE_URL=mysql://build:build@localhost:3306/build
 
-RUN npm ci
+RUN npm install
 
 COPY . .
 
