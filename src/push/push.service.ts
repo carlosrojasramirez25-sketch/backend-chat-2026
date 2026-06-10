@@ -53,8 +53,10 @@ export class PushService {
           JSON.stringify(payload),
         );
       } catch (err: any) {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await this.prisma.push_subscriptions.delete({ where: { id: sub.id } });
+        console.error('[Push] send error for user', userId, 'status:', err.statusCode, err.message);
+        // Remove any subscription that the push service rejects (expired, invalid key, etc.)
+        if (err.statusCode >= 400) {
+          await this.prisma.push_subscriptions.delete({ where: { id: sub.id } }).catch(() => {});
         }
       }
     }
