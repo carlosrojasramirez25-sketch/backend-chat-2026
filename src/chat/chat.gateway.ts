@@ -157,16 +157,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .to(`conversation_${dto.conversation_id}`)
       .emit('newMessage', message);
 
-    // Push notification to offline members
+    // Push notification to members not actively viewing this conversation
     try {
       const members = await this.prisma.conversations_members.findMany({
         where: { conversation_id: dto.conversation_id },
         include: { users: { select: { id: true, name: true } } },
       });
-      const onlineIds = new Set(this.connectedUsers.values());
+      const roomSockets = this.server.sockets.adapter.rooms.get(`conversation_${dto.conversation_id}`) ?? new Set<string>();
       const senderName = members.find(m => m.user_id === messageData.sender_id)?.users?.name ?? 'Nuevo mensaje';
       for (const member of members) {
-        if (member.user_id !== messageData.sender_id && !onlineIds.has(member.user_id)) {
+        if (member.user_id === messageData.sender_id) continue;
+        // Find all socket IDs for this member
+        const memberSockets = [...this.connectedUsers.entries()]
+          .filter(([, uid]) => uid === member.user_id)
+          .map(([sid]) => sid);
+        // Send push if no socket of theirs is in the conversation room
+        const isViewing = memberSockets.some(sid => roomSockets.has(sid));
+        if (!isViewing) {
           await this.pushService.sendToUser(member.user_id, {
             title: senderName,
             body: messageData.type === 'image' ? '📷 Imagen' : (messageData.content ?? ''),
