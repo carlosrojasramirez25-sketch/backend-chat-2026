@@ -15,8 +15,13 @@ export class MessagesController {
     @Body() createMessageDto: CreateMessageDto,
     @CurrentUser() user: { id: number },
   ) {
-    // Force sender_id to the authenticated user — never trust the body
-    return this.messagesService.create({ ...createMessageDto, sender_id: user.id });
+    const dto = { ...createMessageDto, sender_id: user.id };
+    if ((dto.type === 'image' || dto.type === 'audio') && dto.content) {
+      if (!dto.content.startsWith('https://') && !dto.content.startsWith('http://')) {
+        throw new BadRequestException('Contenido inválido para este tipo de mensaje');
+      }
+    }
+    return this.messagesService.create(dto);
   }
 
   @Get()

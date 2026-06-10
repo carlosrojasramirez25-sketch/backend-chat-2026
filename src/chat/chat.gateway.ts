@@ -168,8 +168,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const socketUserId = this.connectedUsers.get(client.id);
-    // Reject if sender_id doesn't match the authenticated socket user
     if (!socketUserId || socketUserId !== dto.sender_id) return;
+    if ((dto.type === 'image' || dto.type === 'audio') && dto.content) {
+      if (!dto.content.startsWith('https://') && !dto.content.startsWith('http://')) return;
+    }
     const { sender_avatar: _ignored, ...messageData } = dto;
     const message = await this.messagesService.createWithSender(messageData as CreateMessageDto);
     this.server
