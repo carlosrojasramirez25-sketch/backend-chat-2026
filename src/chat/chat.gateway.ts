@@ -8,6 +8,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
 import { MessagesService } from '../messages/messages.service';
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -25,14 +26,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly messagesService: MessagesService,
     private readonly prisma: PrismaService,
     private readonly pushService: PushService,
+    private readonly jwtService: JwtService,
   ) {}
 
   // cuando un usuario se conecta
   async handleConnection(client: Socket) {
     const userIdRaw = client.handshake.query.userId;
     const userId = Number(userIdRaw);
-    if (!userId || isNaN(userId)) {
-      console.log(`Cliente conectado sin userId: ${client.id}`);
+    const token = client.handshake.auth?.token as string | undefined;
+
+    if (!userId || isNaN(userId) || !token) {
+      client.disconnect();
+      return;
+    }
+
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.id !== userId) {
+        client.disconnect();
+        return;
+      }
+    } catch {
+      client.disconnect();
       return;
     }
 
@@ -150,7 +165,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     @MessageBody() dto: CreateMessageDto & { sender_avatar?: string },
+    @ConnectedSocket() client: Socket,
   ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    // Reject if sender_id doesn't match the authenticated socket user
+    if (!socketUserId || socketUserId !== dto.sender_id) return;
     const { sender_avatar: _ignored, ...messageData } = dto;
     const message = await this.messagesService.createWithSender(messageData as CreateMessageDto);
     this.server
@@ -205,7 +224,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('profilePhotoUpdate')
   async handleProfilePhotoUpdate(
     @MessageBody() data: { userId: number; avatar_url: string },
+    @ConnectedSocket() client: Socket,
   ) {
+    const socketUserId = this.connectedUsers.get(client.id);
+    if (!socketUserId || socketUserId !== data.userId) return;
     const { userId, avatar_url } = data;
 
     try {

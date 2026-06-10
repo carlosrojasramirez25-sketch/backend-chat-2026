@@ -11,8 +11,12 @@ export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
   @Post()
-  create(@Body() createMessageDto: CreateMessageDto) {
-    return this.messagesService.create(createMessageDto);
+  create(
+    @Body() createMessageDto: CreateMessageDto,
+    @CurrentUser() user: { id: number },
+  ) {
+    // Force sender_id to the authenticated user — never trust the body
+    return this.messagesService.create({ ...createMessageDto, sender_id: user.id });
   }
 
   @Get()
@@ -25,17 +29,21 @@ export class MessagesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.messagesService.findOne(+id);
+  findOne(@Param('id') id: string, @CurrentUser() user: { id: number }) {
+    return this.messagesService.findOneForUser(+id, user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMessageDto: UpdateMessageDto) {
-    return this.messagesService.update(+id, updateMessageDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateMessageDto: UpdateMessageDto,
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.messagesService.updateIfOwner(+id, user.id, updateMessageDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.messagesService.remove(+id);
+  remove(@Param('id') id: string, @CurrentUser() user: { id: number }) {
+    return this.messagesService.softDeleteIfOwner(+id, user.id);
   }
 }
