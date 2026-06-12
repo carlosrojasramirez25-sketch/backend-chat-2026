@@ -11,12 +11,15 @@ async function bootstrap() {
 
   app.use(cookieParser());
   // Security headers (X-Frame-Options, CSP, HSTS, X-Content-Type-Options, etc.)
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow frontend (Vercel) to load images/audio served from this backend (Railway)
+  }));
 
   app.enableCors({
     origin: [
       'http://localhost:3002',
       'https://front-chat-2026.vercel.app',
+       'http://192.168.18.40',  // ← IP celular
     ],
     credentials: true,
   });
